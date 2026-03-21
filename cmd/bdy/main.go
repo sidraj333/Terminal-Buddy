@@ -5,11 +5,28 @@
   	"fmt"
   	"os"
   	"strings"
+	"terminal-buddy/internal/backend"
+	"context"
+	"log"
+	"io"
+	"flag"
   )
 
   func main() {
   	fmt.Println("Buddy session started.")
   	fmt.Println("Type /bye or /exit to leave.")
+
+	verbose := flag.Bool("verbose", false, "show debug logs")
+	// flag returns pointers to booleans
+	
+  	flag.Parse()
+
+  	var logger *log.Logger
+  	if *verbose {
+  		logger = log.New(os.Stderr, "[LOG] ", log.LstdFlags)
+  	} else {
+  		logger = log.New(io.Discard, "", 0)
+  	}
 
   	scanner := bufio.NewScanner(os.Stdin)
 
@@ -31,11 +48,21 @@
 
   		// Exit commands end this process.
   		if cmd == "/bye" || cmd == "/exit" {
-  			fmt.Println("Buddy session ended.")
+  			fmt.Println("goodbye :)")
   			return
   		}
+		fmt.Println("thinking...")
+		// call the function here
+		reply, error := backend.NewAIService(logger).Reply(context.Background(), input)
+
+		if error != nil{
+			logger.Println(error)
+			fmt.Println("An error occurred while processing your request. Please try again.")
+			continue
+		}
+
 
   		// Placeholder app behavior.
-  		fmt.Printf("You said: %s\n", input)
+  		fmt.Print(reply)
   	}
   }
