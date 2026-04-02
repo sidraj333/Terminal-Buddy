@@ -210,3 +210,34 @@ func (a *AuthManager) saveToken(tok *oauth2.Token) error {
 	return nil
 
 }
+
+// refreshes config to fresh token when additional http calls are made to google api
+ func (a *AuthManager) HTTPClient(ctx context.Context) (*http.Client, error) {
+  	cfg, err := a.loadConfig()
+  	if err != nil {
+  		return nil, err
+  	}
+
+  	tok, err := a.loadToken()
+  	if err != nil {
+  		return nil, fmt.Errorf("load token: %w", err)
+  	}
+
+  	// TokenSource auto-refreshes access token when expired.
+  	ts := cfg.TokenSource(ctx, tok)
+
+  	// Prime once now so startup failures happen early.
+  	fresh, err := ts.Token()
+  	if err != nil {
+  		return nil, fmt.Errorf("refresh token: %w", err)
+  	}
+
+  	// Persist refreshed token if it changed.
+  	if fresh.AccessToken != tok.AccessToken || fresh.Expiry != tok.Expiry {
+  		if err := a.saveToken(fresh); err != nil {
+  			return nil, err
+  		}
+  	}
+	
+  	return oauth2.NewClient(ctx, ts), nil
+  }

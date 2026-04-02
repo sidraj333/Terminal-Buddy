@@ -40,6 +40,12 @@ func main() {
 		return
 	}
 
+	google_doc, err := gauth.NewDocsService(context.Background(), auth)
+	if err != nil {
+		fmt.Println("google service failed: ", err)
+		return
+	}
+
 	verbose := flag.Bool("verbose", false, "show debug logs")
 	flag.Parse()
 
@@ -71,6 +77,24 @@ func main() {
 			return
 		}
 
+		if strings.HasPrefix(input, "doc read ") {
+			docURL := strings.TrimSpace(strings.TrimPrefix(input, "doc read "))
+			docCtx, err := google_doc.ReadDocumentContextFromURL(context.Background(), docURL)
+			if err != nil {
+				fmt.Println("doc read error:", err)
+				continue
+			}
+			fmt.Printf("Doc title: %s\nBlocks: %d\n", docCtx.Title, len(docCtx.Blocks))
+			for i, block := range docCtx.Blocks {
+				text := block.Text
+				if len(text) > 200 {
+					text = text[:200] + "..."
+				}
+				fmt.Printf("%02d [%s] %s\n", i+1, block.Type, text)
+			}
+			continue
+		}
+
 		fmt.Println("thinking...")
 		reply, err := backend.NewAIService(logger).Reply(context.Background(), input)
 		if err != nil {
@@ -78,6 +102,7 @@ func main() {
 			fmt.Println("An error occurred while processing your request. Please try again.")
 			continue
 		}
+
 
 		fmt.Print(reply)
 	}
