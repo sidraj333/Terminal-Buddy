@@ -10,10 +10,28 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"terminal-buddy/internal/backend"
 	gauth "terminal-buddy/internal/backend/google"
 )
+
+type AttachedDocSession struct {
+	Doc *gauth.DocContext
+	URL string
+	Meta DocMeta
+	Chat []ChatTurn
+}
+
+type DocMeta struct {
+	Version string
+	IsDeleted bool
+}
+
+type ChatTurn struct {
+	Question string
+	Answer string
+}
 
 func main() {
 	fmt.Println("Buddy new session started.")
@@ -80,6 +98,7 @@ func main() {
 		if strings.HasPrefix(input, "doc read ") {
 			docURL := strings.TrimSpace(strings.TrimPrefix(input, "doc read "))
 			docCtx, err := google_doc.ReadDocumentContextFromURL(context.Background(), docURL)
+			last_read := time.Now()
 			if err != nil {
 				fmt.Println("doc read error:", err)
 				continue
