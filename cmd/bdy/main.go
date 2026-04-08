@@ -98,7 +98,6 @@ func main() {
 		if strings.HasPrefix(input, "doc read ") {
 			docURL := strings.TrimSpace(strings.TrimPrefix(input, "doc read "))
 			docCtx, err := google_doc.ReadDocumentContextFromURL(context.Background(), docURL)
-			last_read := time.Now()
 			if err != nil {
 				fmt.Println("doc read error:", err)
 				continue
