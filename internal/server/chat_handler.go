@@ -18,8 +18,6 @@ type ChatResponse struct{
 	Reply string `json:"reply"` 
 }
 
-
-
 func ask(ctx context.Context, question string) (string, error) {
 	//helper function to call gpt api for a question
 
@@ -40,11 +38,6 @@ func ask(ctx context.Context, question string) (string, error) {
 }
 
 func ChatHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
