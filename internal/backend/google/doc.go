@@ -6,123 +6,47 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-
-	gdocs "google.golang.org/api/docs/v1"
+	"encoding/json"
+	"google.golang.org/api/docs/v1"
 	"google.golang.org/api/option"
 )
 
-type DocContext struct {
-	DocID  string     `json:"doc_id"`
-	URL    string     `json:"url"`
-	Title  string     `json:"title"`
-	Blocks []DocBlock `json:"blocks"`
-}
-
-type DocBlock struct {
-	Type string `json:"type"` // paragraph | heading | table | unknown
-	Text string `json:"text"`
-}
-
 type DocService struct {
-	client *gdocs.Service
+	ctx context.Context 
+	url string
+	auth *AuthManager
+
 }
 
-func NewDocsService(ctx context.Context, auth *AuthManager) (*DocService, error) {
-	httpClient, err := auth.HTTPClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error creating authenticated http client: %w", err)
+func NewDocService(ctx context.Context, url string, auth *AuthManager) *DocService {
+	return &DocService{
+		ctx: ctx,
+		url: url,
+		auth: auth,
 	}
-
-	svc, err := gdocs.NewService(ctx, option.WithHTTPClient(httpClient))
-	if err != nil {
-		return nil, fmt.Errorf("error creating docs service: %w", err)
-	}
-
-	return &DocService{client: svc}, nil
 }
 
-// ReadDocumentContextFromURL accepts a full Docs URL and returns structured context.
-func (s *DocService) ReadDocumentContextFromURL(ctx context.Context, docURL string) (*DocContext, error) {
-	docID, err := extractDocID(docURL)
+func (ds *DocService ) GetDoc() (*docs.Document, error) {
+	docId, err := ds.extractDocID(ds.url)
+
+	httpClient, err := ds.auth.HTTPClient(ds.ctx)
+	googleDocsHandler, err := docs.NewService(ds.ctx, option.WithHTTPClient(httpClient))
+	if err != nil {
+		return nil, err
+	}
+	
+	document, err := googleDocsHandler.Documents.Get(docId).Do()
 	if err != nil {
 		return nil, err
 	}
 
-	doc, err := s.client.Documents.Get(docID).Context(ctx).Do()
-	if err != nil {
-		return nil, fmt.Errorf("docs get %q: %w", docID, err)
-	}
-
-	out := &DocContext{
-		DocID: docID,
-		URL:   docURL,
-		Title: doc.Title,
-	}
-
-	if doc.Body == nil {
-		return out, nil
-	}
-
-	for _, c := range doc.Body.Content {
-		if c == nil {
-			continue
-		}
-
-		if c.Paragraph != nil {
-			text := paragraphText(c.Paragraph)
-			if strings.TrimSpace(text) == "" {
-				continue
-			}
-
-			blockType := "paragraph"
-			if c.Paragraph.ParagraphStyle != nil && c.Paragraph.ParagraphStyle.NamedStyleType != "" {
-				ns := c.Paragraph.ParagraphStyle.NamedStyleType
-				if strings.HasPrefix(ns, "HEADING_") {
-					blockType = "heading"
-				}
-			}
-
-			out.Blocks = append(out.Blocks, DocBlock{
-				Type: blockType,
-				Text: strings.TrimSpace(text),
-			})
-			continue
-		}
-
-		if c.Table != nil {
-			out.Blocks = append(out.Blocks, DocBlock{
-				Type: "table",
-				Text: "[table content omitted]",
-			})
-			continue
-		}
-
-		out.Blocks = append(out.Blocks, DocBlock{
-			Type: "unknown",
-			Text: "[unsupported block type]",
-		})
-	}
-
-	return out, nil
+	doc_bytes, _ := json.MarshalIndent(document, "", " ")
+	fmt.Printf(string(doc_bytes))
+	return document, nil
 }
 
-func paragraphText(p *gdocs.Paragraph) string {
-	if p == nil {
-		return ""
-	}
 
-	var b strings.Builder
-	for _, e := range p.Elements {
-		if e == nil || e.TextRun == nil {
-			continue
-		}
-		b.WriteString(e.TextRun.Content)
-	}
-
-	return b.String()
-}
-
-func extractDocID(raw string) (string, error) {
+func (ds *DocService) extractDocID(raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return "", errors.New("document url is empty")

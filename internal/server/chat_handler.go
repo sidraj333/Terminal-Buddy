@@ -35,6 +35,7 @@ func ask(ctx context.Context, question string) (string, error) {
 	}
 
 	return resp.OutputText(), nil
+
 }
 
 func ChatHandler(w http.ResponseWriter, r *http.Request) {

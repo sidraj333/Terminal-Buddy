@@ -25,4 +25,5 @@ func main() {
 
 	log.Printf("server started  in port %s 🚀", port)
 	log.Fatal(http.ListenAndServe(":" + port, mux)) //log error if crash occurs
+
 }
