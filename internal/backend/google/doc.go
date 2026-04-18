@@ -15,7 +15,8 @@ type DocService struct {
 	ctx context.Context 
 	url string
 	auth *AuthManager
-
+	document *docs.Document
+	
 }
 
 func NewDocService(ctx context.Context, url string, auth *AuthManager) *DocService {
@@ -23,27 +24,32 @@ func NewDocService(ctx context.Context, url string, auth *AuthManager) *DocServi
 		ctx: ctx,
 		url: url,
 		auth: auth,
+		document: nil,
 	}
 }
 
-func (ds *DocService ) GetDoc() (*docs.Document, error) {
+func (ds *DocService) Type() string { return "doc" } //satifies the source type interface used in main.go
+
+func (ds *DocService ) Read()  error {
 	docId, err := ds.extractDocID(ds.url)
 
 	httpClient, err := ds.auth.HTTPClient(ds.ctx)
 	googleDocsHandler, err := docs.NewService(ds.ctx, option.WithHTTPClient(httpClient))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	
 	document, err := googleDocsHandler.Documents.Get(docId).Do()
 	if err != nil {
-		return nil, err
+		return err
 	}
+	ds.document = document
 
-	doc_bytes, _ := json.MarshalIndent(document, "", " ")
-	fmt.Printf(string(doc_bytes))
-	return document, nil
+	return nil
+	
 }
+
+func (ds *DocService) Write() error {return nil}
 
 
 func (ds *DocService) extractDocID(raw string) (string, error) {

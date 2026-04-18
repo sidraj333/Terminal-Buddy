@@ -13,10 +13,16 @@ import (
 
 	"terminal-buddy/internal/backend"
 	gauth "terminal-buddy/internal/backend/google"
+
 )
 
+type Source interface{
+	Write() 
+	Read()
+	Type()
+}
 
-
+var source Source = nil // this is the global object that handles calls to google drive api
 
 
 func main() {
@@ -39,6 +45,9 @@ func main() {
 	}
 
 	auth := gauth.NewAuthManager(credsPath, tokenPath, scopes)
+	//prompt struct (doc struct, presentation struct, excel struct)
+	
+
 	if err := auth.Login(context.Background()); err != nil {
 		fmt.Println("Google login failed:", err)
 		return
@@ -76,16 +85,24 @@ func main() {
 			fmt.Println("goodbye :)")
 			return
 		}
+		
+		// set a string here we write type
+		// 3 variables here
+		if strings.HasPrefix(input, "/open") {
 
-		if strings.HasPrefix(input, "/doc_read") {
-			docURL := strings.TrimSpace(strings.TrimPrefix(input, "/doc_read "))
-			document := gauth.NewDocService(context.Background(), docURL, auth)
-			_, err := document.GetDoc()
+		
+			
+
+			// TODO  parse the url and implement checks to determine what type of source
+			
+			URL := strings.TrimSpace(strings.TrimPrefix(input, "/open "))
+			source := gauth.NewDocService(context.Background(), URL, auth)
+			source.Read()
 			if err != nil {
 				fmt.Println(err)
-				fmt.Println("coudl not fetch doc")
+				fmt.Println("could not fetch doc")
 			}
-			continue
+
 		}
 
 		fmt.Println("thinking...")
@@ -100,3 +117,6 @@ func main() {
 		fmt.Print(reply)
 	}
 }
+
+
+
