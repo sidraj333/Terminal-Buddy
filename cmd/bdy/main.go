@@ -10,16 +10,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"terminal-buddy/internal/backend"
 	gauth "terminal-buddy/internal/backend/google"
 
 )
 
 type Source interface{
-	Write() 
-	Read()
-	Type()
+	Write() error 
+	Read() error
+	Type() error
+	Ask(question string) (string, error)
 }
 
 var source Source = nil // this is the global object that handles calls to google drive api
@@ -85,36 +84,42 @@ func main() {
 			fmt.Println("goodbye :)")
 			return
 		}
+		logger.Println("starting doc fetch")
 		
 		// set a string here we write type
 		// 3 variables here
-		if strings.HasPrefix(input, "/open") {
-
-		
-			
-
+		if strings.HasPrefix(input, "/open") {	
 			// TODO  parse the url and implement checks to determine what type of source
 			
 			URL := strings.TrimSpace(strings.TrimPrefix(input, "/open "))
-			source := gauth.NewDocService(context.Background(), URL, auth)
-			source.Read()
+			source, err := gauth.NewDocService(context.Background(), URL, auth)
 			if err != nil {
 				fmt.Println(err)
-				fmt.Println("could not fetch doc")
+				fmt.Println("Could not fetch doc")
+				continue
 			}
+			source.Read()
 
+			fmt.Println("Successful doc fetch, waiting for your questions")
+
+		} else {
+			fmt.Println("thinking...")
+			
+			gtp_resp, err := source.Ask(input)
+			if err != nil {
+				fmt.Println("ERROR calling gpt")
+			} else {
+				fmt.Println(gtp_resp)
+			}
+		
 		}
 
-		fmt.Println("thinking...")
-		reply, err := backend.NewAIService(logger).Reply(context.Background(), input)
-		if err != nil {
-			logger.Println(err)
-			fmt.Println("An error occurred while processing your request. Please try again.")
-			continue
-		}
 
 
-		fmt.Print(reply)
+		
+
+
+		
 	}
 }
 

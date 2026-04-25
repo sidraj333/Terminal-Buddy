@@ -1,21 +1,22 @@
-package server
+package main
 
 import (
-	"encoding/json"
-	"net/http"
 	"context"
+	"encoding/json"
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 	"github.com/openai/openai-go/v3/responses"
+	"net/http"
 	"os"
 )
 
-type ChatRequest struct{
-	Input string `json:"input"`
-} 
+type ChatRequest struct {
+	Question      string `json:"input"`
+	SourceContext string
+}
 
-type ChatResponse struct{
-	Reply string `json:"reply"` 
+type ChatResponse struct {
+	Reply string `json:"reply"`
 }
 
 func ask(ctx context.Context, question string) (string, error) {
@@ -45,7 +46,7 @@ func ChatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gpt_resp, err := ask(r.Context(), req.Input)
+	gpt_resp, err := ask(r.Context(), req.Question)
 
 	if err != nil {
 		http.Error(w, "400", http.StatusInternalServerError)
@@ -56,5 +57,5 @@ func ChatHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
-  	}
+	}
 }

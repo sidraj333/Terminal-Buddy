@@ -7,8 +7,11 @@ import (
 	"net/url"
 	"strings"
 	"encoding/json"
+	"net/http"
 	"google.golang.org/api/docs/v1"
 	"google.golang.org/api/option"
+	"bytes"
+	"io"
 )
 
 type DocService struct {
@@ -16,22 +19,49 @@ type DocService struct {
 	url string
 	auth *AuthManager
 	document *docs.Document
+	doc_id string
+	source_type string
 	
 }
 
-func NewDocService(ctx context.Context, url string, auth *AuthManager) *DocService {
+func NewDocService(ctx context.Context, sourceUrl string, auth *AuthManager) (*DocService, error) {
+		raw := strings.TrimSpace(sourceUrl)
+		if raw == "" {
+			return nil, errors.New("document url is empty")
+		}
+
+		u, err := url.Parse(sourceUrl)
+		if err != nil {
+			return nil, fmt.Errorf("invalid document url: %w", err)
+		}
+
+		if !strings.Contains(u.Host, "docs.google.com") {
+			return nil, fmt.Errorf("not a valid Google doc link: %s", raw)
+		}
+
+		parts := strings.Split(u.Path, "/")
+		if len(parts) < 4 || parts[1] != "document" || parts[2] != "d" || parts[3] == "" {
+			return nil, fmt.Errorf("could not extract doc id from url: %s", raw)
+		}
+		doc_id := parts[3]
+		
+	
+		
+
+
 	return &DocService{
 		ctx: ctx,
-		url: url,
+		url: sourceUrl,
 		auth: auth,
 		document: nil,
-	}
+		doc_id: doc_id,
+		source_type: "doc",
+	}, nil
 }
 
 func (ds *DocService) Type() string { return "doc" } //satifies the source type interface used in main.go
 
 func (ds *DocService ) Read()  error {
-	docId, err := ds.extractDocID(ds.url)
 
 	httpClient, err := ds.auth.HTTPClient(ds.ctx)
 	googleDocsHandler, err := docs.NewService(ds.ctx, option.WithHTTPClient(httpClient))
@@ -39,7 +69,7 @@ func (ds *DocService ) Read()  error {
 		return err
 	}
 	
-	document, err := googleDocsHandler.Documents.Get(docId).Do()
+	document, err := googleDocsHandler.Documents.Get(ds.doc_id).Do()
 	if err != nil {
 		return err
 	}
@@ -52,25 +82,26 @@ func (ds *DocService ) Read()  error {
 func (ds *DocService) Write() error {return nil}
 
 
-func (ds *DocService) extractDocID(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return "", errors.New("document url is empty")
-	}
+func (ds *DocService) Ask(question string) (string, error) {
+	//POST request to chanlder_.go with document information and the question
+	ds.Read()
 
-	u, err := url.Parse(raw)
+	marshalledDoc, err := json.Marshal(ds.document)
 	if err != nil {
-		return "", fmt.Errorf("invalid document url: %w", err)
+		return "", err
 	}
-
-	if !strings.Contains(u.Host, "docs.google.com") {
-		return "", fmt.Errorf("not a Google doc link: %s", raw)
+	req, err := http.NewRequestWithContext(ds.ctx, http.MethodPost, "http://localhost:/8080", bytes.NewReader(marshalledDoc),)
+	if err != nil {
+		return "", err
 	}
-
-	parts := strings.Split(u.Path, "/")
-	if len(parts) < 4 || parts[1] != "document" || parts[2] != "d" || parts[3] == "" {
-		return "", fmt.Errorf("could not extract doc id from url: %s", raw)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	resp_bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
 	}
+	defer resp.Body.Close()
+	return string(resp_bytes), nil
 
-	return parts[3], nil
+	
 }
