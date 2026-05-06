@@ -85,3 +85,39 @@ func TestGetting_Unregistered_Tool(t *testing.T) {
 	}
 
 }
+
+func TestRegister_EmptyToolNameReturnsError(t *testing.T) {
+	registery := NewRegistery()
+
+	handler := func(ctx context.Context, rawArgs []byte) (any, error) {
+		return "ok", nil
+	}
+
+	tool := Tool{
+		Name:        "",
+		Description: "tool with missing name",
+		Handler:     handler,
+		InputSchema: nil,
+	}
+
+	err := registery.register_tool("", tool)
+	if err == nil {
+		t.Fatal("expected empty tool name to return an error")
+	}
+}
+
+func TestRegister_NilHandlerReturnsError(t *testing.T) {
+	registery := NewRegistery()
+
+	tool := Tool{
+		Name:        "read_google_doc",
+		Description: "tool with nil handler",
+		Handler:     nil,
+		InputSchema: nil,
+	}
+
+	err := registery.register_tool("read_google_doc", tool)
+	if err == nil {
+		t.Fatal("expected nil handler to return an error")
+	}
+}
