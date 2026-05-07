@@ -1,8 +1,15 @@
 package tools
 
-import "context"
+import (
+	"context"
+	"net/http"
+)
 
-type ToolHandler func(ctx context.Context, rawArgs []byte) (any, error)
+type HTTPClientProvider interface {
+	HTTPClient(ctx context.Context) (*http.Client, error)
+}
+
+type ToolHandler func(ctx context.Context, rawArgs []byte, authClient HTTPClientProvider) (any, error)
 
 type Tool struct {
 	Name		string
