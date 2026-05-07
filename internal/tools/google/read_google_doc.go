@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	backendgoogle "terminal-buddy/internal/backend/google"
 	"google.golang.org/api/docs/v1"
 	"google.golang.org/api/option"
 	"strings"
@@ -22,7 +21,7 @@ type ReadGoogleDocResult struct {
 	Document	*docs.Document
 }
 
-var _ = backendgoogle.AuthManager{}
+
 
 func GetDocumentId(document_url string) (string, error) {
 	raw := strings.TrimSpace(document_url)
@@ -46,7 +45,7 @@ func GetDocumentId(document_url string) (string, error) {
 	return parts[3], nil
 }
 
-func ReadGoogleDocHandler(ctx context.Context, rawArgs []byte, auth *backendgoogle.AuthManager) (any, error) {
+func ReadGoogleDocHandler(ctx context.Context, rawArgs []byte, auth HTTPClientProvider) (any, error) {
 	var read_args ReadGoogleDocsArgs
 	if err := json.Unmarshal(rawArgs, &read_args); err != nil {
 		return nil, err
@@ -60,6 +59,10 @@ func ReadGoogleDocHandler(ctx context.Context, rawArgs []byte, auth *backendgoog
 	doc_id, err := GetDocumentId(document_url)
 	if err != nil {
 		return nil, err
+	}
+
+	if auth == nil {
+		return nil, errors.New("auth manager is required")
 	}
 
 	http_client, err := auth.HTTPClient(ctx)
@@ -77,12 +80,9 @@ func ReadGoogleDocHandler(ctx context.Context, rawArgs []byte, auth *backendgoog
 		return nil, err
 	}
 
-
-	
-
 	return ReadGoogleDocResult{
 		DocumentURL: read_args.DocumentURL,
-		Title: doc_id,
+		Title: document.Title,
 		Document: document,
 	}, nil
 }
