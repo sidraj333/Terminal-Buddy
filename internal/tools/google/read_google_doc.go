@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"terminal-buddy/internal/tools"
 	"google.golang.org/api/docs/v1"
 	"google.golang.org/api/option"
 	"strings"
@@ -45,7 +46,7 @@ func GetDocumentId(document_url string) (string, error) {
 	return parts[3], nil
 }
 
-func ReadGoogleDocHandler(ctx context.Context, rawArgs []byte, auth HTTPClientProvider) (any, error) {
+func ReadGoogleDocHandler(ctx context.Context, rawArgs []byte, auth tools.HTTPClientProvider) (any, error) {
 	var read_args ReadGoogleDocsArgs
 	if err := json.Unmarshal(rawArgs, &read_args); err != nil {
 		return nil, err
