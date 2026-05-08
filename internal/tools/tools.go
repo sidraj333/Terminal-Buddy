@@ -4,7 +4,16 @@ import (
 	"context"
 	"net/http"
 )
+type ParameterSchema struct {
+	Name        string
+	Type        string
+	Description string
+	Required    bool
+}
 
+type InputSchema struct {
+	Parameters 	[]ParameterSchema
+}
 type HTTPClientProvider interface {
 	HTTPClient(ctx context.Context) (*http.Client, error)
 }
@@ -15,5 +24,5 @@ type Tool struct {
 	Name		string
 	Description	string
 	Handler		ToolHandler
-	InputSchema	any
+	InputSchema	InputSchema
 }

@@ -5,10 +5,21 @@ import (
 	"testing"
 )
 
+var fakeInputSchema = InputSchema{
+	Parameters: []ParameterSchema{
+		{
+			Name:        "document_url",
+			Type:        "string",
+			Description: "test parameter",
+			Required:    true,
+		},
+	},
+}
+
 func TestRegister_HappyPath(t *testing.T) {
 	registery := NewRegistery()
 
-	handler := func(ctx context.Context, rawArgs []byte) (any, error) {
+	handler := func(ctx context.Context, rawArgs []byte, authClient HTTPClientProvider) (any, error) {
 		return "ok", nil
 	}
 
@@ -16,7 +27,7 @@ func TestRegister_HappyPath(t *testing.T) {
 		Name:        "read_google_doc",
 		Description: "tool to read a google doc given a url",
 		Handler:     handler,
-		InputSchema: nil,
+		InputSchema: fakeInputSchema,
 	}
 
 	err := registery.register_tool("read_doc", tool)
@@ -38,7 +49,7 @@ func TestRegister_HappyPath(t *testing.T) {
 func TestRegister_DuplicateToolReturnsError(t *testing.T) {
 	registery := NewRegistery()
 
-	handler := func(ctx context.Context, rawArgs []byte) (any, error) {
+	handler := func(ctx context.Context, rawArgs []byte, authClient HTTPClientProvider) (any, error) {
 		return "ok", nil
 	}
 
@@ -46,7 +57,7 @@ func TestRegister_DuplicateToolReturnsError(t *testing.T) {
 		Name:        "read_google_doc",
 		Description: "tool to read a google doc given a url",
 		Handler:     handler,
-		InputSchema: nil,
+		InputSchema: fakeInputSchema,
 	}
 
 	err := registery.register_tool("read_doc", tool)
@@ -63,7 +74,7 @@ func TestRegister_DuplicateToolReturnsError(t *testing.T) {
 func TestGetting_Unregistered_Tool(t *testing.T) {
 	registery := NewRegistery()
 
-	handler := func(ctx context.Context, rawArgs []byte) (any, error) {
+	handler := func(ctx context.Context, rawArgs []byte, authClient HTTPClientProvider) (any, error) {
 		return "ok", nil
 	}
 
@@ -71,7 +82,7 @@ func TestGetting_Unregistered_Tool(t *testing.T) {
 		Name:        "read_google_doc",
 		Description: "tool to read a google doc given a url",
 		Handler:     handler,
-		InputSchema: nil,
+		InputSchema: fakeInputSchema,
 	}
 
 	err := registery.register_tool("read_doc", tool)
@@ -89,7 +100,7 @@ func TestGetting_Unregistered_Tool(t *testing.T) {
 func TestRegister_EmptyToolNameReturnsError(t *testing.T) {
 	registery := NewRegistery()
 
-	handler := func(ctx context.Context, rawArgs []byte) (any, error) {
+	handler := func(ctx context.Context, rawArgs []byte, authClient HTTPClientProvider) (any, error) {
 		return "ok", nil
 	}
 
@@ -97,7 +108,7 @@ func TestRegister_EmptyToolNameReturnsError(t *testing.T) {
 		Name:        "",
 		Description: "tool with missing name",
 		Handler:     handler,
-		InputSchema: nil,
+		InputSchema: fakeInputSchema,
 	}
 
 	err := registery.register_tool("", tool)
@@ -113,7 +124,7 @@ func TestRegister_NilHandlerReturnsError(t *testing.T) {
 		Name:        "read_google_doc",
 		Description: "tool with nil handler",
 		Handler:     nil,
-		InputSchema: nil,
+		InputSchema: fakeInputSchema,
 	}
 
 	err := registery.register_tool("read_google_doc", tool)

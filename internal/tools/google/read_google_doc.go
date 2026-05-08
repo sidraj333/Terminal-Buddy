@@ -4,25 +4,45 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"terminal-buddy/internal/tools"
-	"google.golang.org/api/docs/v1"
-	"google.golang.org/api/option"
-	"strings"
 	"errors"
 	"net/url"
+	"strings"
+
+	"terminal-buddy/internal/tools"
+
+	"google.golang.org/api/docs/v1"
+	"google.golang.org/api/option"
 )
 
-type ReadGoogleDocsArgs struct {
+var readGoogleDocInputSchema = tools.InputSchema{
+	Parameters: []tools.ParameterSchema{
+		{
+			Name:        "document_url",
+			Type:        "string",
+			Description: "The Google Docs URL to read",
+			Required:    true,
+		},
+	},
+}
+
+type ReadGoogleDocArgs struct {
 	DocumentURL string `json:"document_url"`
 }
 
 type ReadGoogleDocResult struct {
-	DocumentURL string `json:"document_url"`
-	Title 		string `json:"title"`
-	Document	*docs.Document
+	DocumentURL string         `json:"document_url"`
+	Title       string         `json:"title"`
+	Document    *docs.Document `json:"document"`
 }
 
-
+func NewReadGoogleDocTool() tools.Tool {
+	return tools.Tool{
+		Name:        "read_google_doc",
+		Description: "Read a Google Doc from a Google Doc URL",
+		InputSchema: readGoogleDocInputSchema,
+		Handler:     ReadGoogleDocHandler,
+	}
+}
 
 func GetDocumentId(document_url string) (string, error) {
 	raw := strings.TrimSpace(document_url)
@@ -47,7 +67,7 @@ func GetDocumentId(document_url string) (string, error) {
 }
 
 func ReadGoogleDocHandler(ctx context.Context, rawArgs []byte, auth tools.HTTPClientProvider) (any, error) {
-	var read_args ReadGoogleDocsArgs
+	var read_args ReadGoogleDocArgs
 	if err := json.Unmarshal(rawArgs, &read_args); err != nil {
 		return nil, err
 	}
