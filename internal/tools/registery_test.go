@@ -30,7 +30,7 @@ func TestRegister_HappyPath(t *testing.T) {
 		InputSchema: fakeInputSchema,
 	}
 
-	err := registery.register_tool("read_doc", tool)
+	err := registery.RegisterTool("read_doc", tool)
 
 	if err != nil {
 		t.Fatalf("expected no error registering tool, got %v", err)
@@ -60,7 +60,7 @@ func TestRegister_DuplicateToolReturnsError(t *testing.T) {
 		InputSchema: fakeInputSchema,
 	}
 
-	err := registery.register_tool("read_doc", tool)
+	err := registery.RegisterTool("read_doc", tool)
 	if err != nil {
 		t.Fatalf("expected first registration to succeed, got %v", err)
 	}
@@ -85,7 +85,7 @@ func TestGetting_Unregistered_Tool(t *testing.T) {
 		InputSchema: fakeInputSchema,
 	}
 
-	err := registery.register_tool("read_doc", tool)
+	err := registery.RegisterTool("read_doc", tool)
 	if err != nil {
 		t.Fatalf("expected first registration to succeed, got %v", err)
 	}
@@ -111,7 +111,7 @@ func TestRegister_EmptyToolNameReturnsError(t *testing.T) {
 		InputSchema: fakeInputSchema,
 	}
 
-	err := registery.register_tool("", tool)
+	err := registery.RegisterTool("", tool)
 	if err == nil {
 		t.Fatal("expected empty tool name to return an error")
 	}
@@ -127,8 +127,50 @@ func TestRegister_NilHandlerReturnsError(t *testing.T) {
 		InputSchema: fakeInputSchema,
 	}
 
-	err := registery.register_tool("read_google_doc", tool)
+	err := registery.RegisterTool("read_google_doc", tool)
 	if err == nil {
 		t.Fatal("expected nil handler to return an error")
 	}
+}
+
+func TestRegister_CallHappyhPath(t *testing.T) {
+	registery := NewRegistery()
+	handler := func(ctx context.Context, rawArgs []byte, authClient HTTPClientProvider) (any, error) {
+		return "ok", nil
+	}
+
+	tool := Tool{
+		Name:        "read_google_doc",
+		Description: "read a google doc given a url",
+		Handler:     handler,
+		InputSchema: fakeInputSchema,
+	}
+
+	err := registery.RegisterTool("read_google_doc", tool)
+
+	if err != nil {
+		t.Fatalf("expected tool registration to succeed, got %v", err)
+	}
+
+
+	callResult, err := registery.Call(
+		"read_google_doc",
+		context.Background(),
+		[]byte(`{"document_url":"https://docs.google.com/document/d/test-doc-id/edit"}`),
+		nil,
+	)
+
+	if err != nil {
+		t.Fatalf("expected tool call to succeed, got %v", err)
+	}
+
+	resultString, ok := callResult.(string)
+	if !ok {
+		t.Fatalf("expected result type %T, got %T", "", callResult)
+	}
+
+	if resultString != "ok" {
+		t.Fatalf("expected result %q, got %q", "ok", resultString)
+	}
+
 }
