@@ -16,7 +16,7 @@ func main() {
 	*/
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /chat", ChatHandler)
+	mux.HandleFunc("POST /chat", NewChatHandler())
 	port := os.Getenv("PORT")
 
 	if port == "" {
